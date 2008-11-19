@@ -41,16 +41,15 @@
   (pushnew requirement (gethash (slot-definition-name slot)
                                 (slot-requirement-table class))))
 
-(defmethod add-requirement
-    ((class with-provides-requires) (slot string)
-     (requirement requirement))
-  (let* ((slot-definitions (class-slots class))
-         (found-slot
-          (or (iterate (for s in slot-definitions)
-                       (when (string-equal (slot-definition-name s) slot)
-                         (leave s)))
-              (error (format nil "No slot named ~A in ~A" slot (class-name class))))))
-    (add-requirement class found-slot requirement)))
+(defun find-slot (class slot-name)
+  (or (iter (for s in (class-slots class))
+            (when (string-equal (slot-definition-name s) slot-name)
+              (leave s)))
+      (error (format nil "No slot named ~A in ~A" slot-name (class-name class)))))
+
+(defmethod add-requirement ((class with-provides-requires) (slot-name string)
+                            (requirement requirement))
+  (add-requirement class (find-slot class slot-name) requirement))
 
 
 (defgeneric class-requires (class)
