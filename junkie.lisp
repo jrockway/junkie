@@ -90,3 +90,34 @@
                    &aux (provision (car spec)) (thing (cdr spec)))
   (declare (type requirement provision))
   (pushnew thing (gethash (name provision) (provision-table area))))
+
+(defgeneric find-things-providing-1 (area provision))
+(defmethod find-things-providing-1 ((area action-area) (provision requirement))
+  (gethash (name provision) (provision-table area)))
+
+(defgeneric find-things-providing (area requirements))
+(defmethod find-things-providing ((area action-area) (requirements list))
+  (declare (type (cons requirement) requirements))
+  (reduce #'intersection
+          (mapcar
+           (lambda (requirement) (find-things-providing-1 area requirement))
+           requirements)))
+
+(defgeneric obtain-instance (class area)
+  (:documentation "Create an instance of CLASS using the action-area AREA."))
+
+(defmethod obtain-instance ((class symbol) (area action-area))
+  (obtain-instance (find-class class) area))
+
+(defmethod obtain-instance ((class with-provides-requires) (area action-area))
+  ;; note to self: i just realized that we probably never need
+  ;; class-requirements; we always want (slot . requirement) tuples
+  (apply #'make-instance
+         (cons class
+               (iter
+                 (for (slot-name requirements) in-hashtable (slot-requirement-table class))
+                 (nconcing
+                  (list (car (slot-definition-initargs (find-slot class slot-name)))
+                        ;; TODO: we need to recurse here when it's a
+                        ;; class instead of an instance
+                        (car (find-things-providing area requirements))))))))

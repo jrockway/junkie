@@ -80,3 +80,21 @@
     (is (eq (class-of (car (gethash 'foo (provision-table a))))
             provides-foo-class)
         "now the instance provides foo")))
+
+;; setup stuff for example
+(defclass ssh-server ()
+  ((computer-name :initarg :very-poorly-named-initarg
+                  :accessor computer-name))
+  (:metaclass with-provides-requires))
+
+(define-requirement computer-name)
+(add-requirement (find-class 'ssh-server) "computer-name" computer-name)
+
+(test basic-instance-creation
+  "create instances from stuff in the action area"
+
+  (let ((a (make-instance 'action-area)))
+    (insert a (cons computer-name "My Computer"))
+    (let (instance)
+      (finishes (setf instance (obtain-instance 'ssh-server a)))
+      (is (string= (computer-name instance) "My Computer")))))
