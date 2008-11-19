@@ -80,6 +80,3 @@
     (is (eq (class-of (car (gethash 'foo (provision-table a))))
             provides-foo-class)
         "now the instance provides foo")))
-
-
-

@@ -79,14 +79,15 @@
 ;; insert a class
 (defmethod insert ((area action-area) (class with-provides-requires))
   (iter (for provision in (class-provides class))
-        (pushnew class (gethash (name provision) (provision-table area)))))
+        (insert area (cons provision class))))
 
 ;; insert an instance
 (defmethod insert ((area action-area) (thing standard-object))
   (iter (for provision in (class-provides (class-of thing)))
-        (pushnew thing (gethash (name provision) (provision-table area)))))
+        (insert area (cons provision thing))))
 
 ;; insert a bare provider
-(defmethod insert ((area action-area) (thing cons)
-                   &aux (provides (car thing)) (value (cdr thing)))
-  )
+(defmethod insert ((area action-area) (spec cons)
+                   &aux (provision (car spec)) (thing (cdr spec)))
+  (declare (type requirement provision))
+  (pushnew thing (gethash (name provision) (provision-table area))))
