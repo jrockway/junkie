@@ -16,27 +16,46 @@
 
 (define-requirement foo)
 
-(test with-provides-requires
-  (let ((requires-foo (find-class 'test-requires-foo)))
-    ;; cleanup from previous results
+(test dependency-tracking-metaclass
+  "tests to make sure the with-provides-requires metaclass works"
+  (let ((requires-foo (find-class 'test-requires-foo))
+        (provides-foo (find-class 'test-provides-foo)))
+    ;; cleanup from previous runs
     (setf (slot-requirement-table requires-foo)
           (make-hash-table :test 'equal))
+    (setf (class-provides provides-foo) nil)
 
-    (is (= 0 (length (class-requirements requires-foo)))
+    ;; test requirements
+    (is (= 0 (length (class-requires requires-foo)))
         "No requirements to build test-requires-foo yet")
     (finishes
       (add-requirement requires-foo "foo" foo)
       "adding the 'foo' requirement lives")
-    (is (= 1 (length (class-requirements requires-foo)))
-        "requirement seen via class-requirements")
-    (is (eq (car (class-requirements requires-foo))
+    (is (= 1 (length (class-requires requires-foo)))
+        "requirement seen via class-requires")
+    (is (eq (car (class-requires requires-foo))
             foo)
         "requirement added is foo")
     (finishes
       (add-requirement requires-foo "foo" foo)
       "adding the 'foo' requirement again is OK")
-    (is (= 1 (length (class-requirements requires-foo)))
-        "but we don't add it twice")))
+    (is (= 1 (length (class-requires requires-foo)))
+        "but we don't add it twice")
+
+    (is (= 0 (length (class-provides requires-foo)))
+        "make sure this doesn't provide anything")
+
+    ;; test provisions
+    (finishes (add-provision provides-foo foo)
+              "adding provision lives")
+    (is (= 1 (length (class-provides provides-foo)))
+        "provision added ok")
+    (is (= 0 (length (class-requires provides-foo)))
+        "no requirements")
+    (finishes (add-provision provides-foo foo)
+              "adding same provision again lives")
+    (is (= 1 (length (class-provides provides-foo)))
+        "provision not added twice")))
 
 ;(test action-area
 ;  (let (a)

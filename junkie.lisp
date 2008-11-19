@@ -12,7 +12,7 @@
 (defclass with-provides-requires (standard-class)
   ((slot-requirement-table :initform (make-hash-table :test 'equal)
                            :accessor slot-requirement-table)
-   (class-provision-list :initform () :accessor class-provision-list)))
+   (class-provision-list :initform () :accessor class-provides)))
 
 
 ;;; define metaclass compatability.  eventually all these will be T,
@@ -53,19 +53,22 @@
     (add-requirement class found-slot requirement)))
 
 
-(defgeneric class-requirements (class)
+(defgeneric class-requires (class)
   (:documentation "Return a set of all requirements needed to build CLASS"))
 
-(defmethod class-requirements ((class standard-class)) nil)
-(defmethod class-requirements ((class with-provides-requires))
+(defmethod class-requires ((class standard-class)) nil)
+(defmethod class-requires ((class with-provides-requires))
   (let (set)
     (iter (for (slot requirements-list) in-hashtable (slot-requirement-table class))
           (iter (for requirement in requirements-list)
                 (pushnew requirement set)))
     set))
 
-(defgeneric add-provider (place provision)
+(defgeneric add-provision (place provision)
   (:documentation "Update the provision table to indicate that PLACE provides PROVISION"))
+
+(defmethod add-provision ((class with-provides-requires) (provision requirement))
+  (pushnew provision (class-provides class)))
 
 (defclass action-area ()
   ((requires-table :initform () :accessor requires-table)
