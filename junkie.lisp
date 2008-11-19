@@ -71,20 +71,20 @@
   (pushnew provision (class-provides class)))
 
 (defclass action-area ()
-  ((requires-table :initform () :accessor requires-table)
-   (class-provides-table :initform () :accessor class-provides-table)
-   (slot-provides-table :initform () :accessor slot-provides-table)))
+  ((provision-table :initform (make-hash-table) :accessor provision-table)))
 
 (defgeneric insert (area thing)
   (:documentation "Insert THING into the action-area AREA"))
 
 ;; insert a class
-(defmethod insert ((area action-area) (thing with-provides-requires))
-  )
+(defmethod insert ((area action-area) (class with-provides-requires))
+  (iter (for provision in (class-provides class))
+        (pushnew class (gethash (name provision) (provision-table area)))))
 
 ;; insert an instance
 (defmethod insert ((area action-area) (thing standard-object))
-  )
+  (iter (for provision in (class-provides (class-of thing)))
+        (pushnew thing (gethash (name provision) (provision-table area)))))
 
 ;; insert a bare provider
 (defmethod insert ((area action-area) (thing cons)

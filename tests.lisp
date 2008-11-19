@@ -14,16 +14,21 @@
 (finalize-inheritance (find-class 'test-requires-foo))
 (finalize-inheritance (find-class 'test-provides-foo))
 
+(defun cleanup-classes ()
+  ;; cleanup from previous runs
+  (iter (for class in '(test-requires-foo test-provides-foo))
+        (setf (slot-requirement-table (find-class class))
+              (make-hash-table :test 'equal))
+        (setf (class-provides (find-class class)) nil)))
+
 (define-requirement foo)
 
 (test dependency-tracking-metaclass
   "tests to make sure the with-provides-requires metaclass works"
+  (cleanup-classes)
+
   (let ((requires-foo (find-class 'test-requires-foo))
         (provides-foo (find-class 'test-provides-foo)))
-    ;; cleanup from previous runs
-    (setf (slot-requirement-table requires-foo)
-          (make-hash-table :test 'equal))
-    (setf (class-provides provides-foo) nil)
 
     ;; test requirements
     (is (= 0 (length (class-requires requires-foo)))
@@ -57,6 +62,24 @@
     (is (= 1 (length (class-provides provides-foo)))
         "provision not added twice")))
 
-;(test action-area
-;  (let (a)
-;    (finishes (setf a (make-instance 'action-area)) "make action area")))
+(test action-area-management
+  "test insertion, etc. of the action area"
+  (cleanup-classes)
+  (let (a
+        (provides-foo-class (find-class 'test-provides-foo))
+        (provides-foo (make-instance 'test-provides-foo :foo-source 1234)))
+
+    (add-provision provides-foo-class foo)
+
+    (finishes (setf a (make-instance 'action-area)) "make action area")
+    (finishes (insert a provides-foo-class) "adding provides-foo-class lives")
+    (is (eq (car (gethash 'foo (provision-table a))) provides-foo-class)
+        "provides foo is known by the action area to ... provide foo")
+
+    (finishes (insert a provides-foo) "adding instance also ok")
+    (is (eq (class-of (car (gethash 'foo (provision-table a))))
+            provides-foo-class)
+        "now the instance provides foo")))
+
+
+
