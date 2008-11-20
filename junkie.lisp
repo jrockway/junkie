@@ -51,7 +51,8 @@
                             (requirement requirement))
   (add-requirement class (find-slot class slot-name) requirement))
 
-
+;; note to self: i just realized that we probably never need
+;; class-requirements; we always want (slot . requirement) tuples
 (defgeneric class-requires (class)
   (:documentation "Return a set of all requirements needed to build CLASS"))
 
@@ -103,21 +104,25 @@
            (lambda (requirement) (find-things-providing-1 area requirement))
            requirements)))
 
-(defgeneric obtain-instance (class area)
-  (:documentation "Create an instance of CLASS using the action-area AREA."))
+(defgeneric build-initargs-for (class area))
+(defmethod build-initargs-for ((class with-provides-requires) (area action-area))
+  (iter
+    (for (slot-name requirements)
+         in-hashtable (slot-requirement-table class))
+    (nconcing
+     (list
+      (car (slot-definition-initargs (find-slot class slot-name)))
+      ;; TODO: we need to recurse here when it's a
+      ;; class instead of an instance
+      (car (find-things-providing area requirements))))))
 
-(defmethod obtain-instance ((class symbol) (area action-area))
-  (obtain-instance (find-class class) area))
 
-(defmethod obtain-instance ((class with-provides-requires) (area action-area))
-  ;; note to self: i just realized that we probably never need
-  ;; class-requirements; we always want (slot . requirement) tuples
-  (apply #'make-instance
-         (cons class
-               (iter
-                 (for (slot-name requirements) in-hashtable (slot-requirement-table class))
-                 (nconcing
-                  (list (car (slot-definition-initargs (find-slot class slot-name)))
-                        ;; TODO: we need to recurse here when it's a
-                        ;; class instead of an instance
-                        (car (find-things-providing area requirements))))))))
+(defmethod make-instance ((class with-provides-requires) &rest initargs)
+  (destructuring-bind (&key ((:from-action-area area)) &allow-other-keys) initargs
+    (when area
+        (setf initargs
+              (append (build-initargs-for class area)
+                      (iter (for (key value) on initargs by #'cddr)
+                            (when (not (eq key :from-action-area))
+                              (nconcing (list key value))))))))
+  (apply #'call-next-method (cons class initargs)))

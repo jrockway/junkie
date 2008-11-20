@@ -84,7 +84,9 @@
 ;; setup stuff for example
 (defclass ssh-server ()
   ((computer-name :initarg :very-poorly-named-initarg
-                  :accessor computer-name))
+                  :accessor computer-name)
+   (some-other-arg :initarg :some-other-arg
+                   :accessor some-other-arg))
   (:metaclass with-provides-requires))
 
 (define-requirement computer-name)
@@ -93,8 +95,21 @@
 (test basic-instance-creation
   "create instances from stuff in the action area"
 
-  (let ((a (make-instance 'action-area)))
+  (let ((a (make-instance 'action-area)) instance)
     (insert a (cons computer-name "My Computer"))
-    (let (instance)
-      (finishes (setf instance (obtain-instance 'ssh-server a)))
-      (is (string= (computer-name instance) "My Computer")))))
+
+    ;; try the normal way of using make-instance
+    (finishes (setf instance
+                    (make-instance 'ssh-server
+                                   :very-poorly-named-initarg "foo"
+                                   :some-other-arg "bar")))
+    (is (string= (computer-name instance) "foo"))
+    (is (string= (some-other-arg instance) "bar"))
+
+    ;; then try with an action-area
+    (finishes (setf instance
+                    (make-instance 'ssh-server
+                                   :from-action-area a
+                                   :some-other-arg "oh hai")))
+    (is (string= (computer-name instance) "My Computer"))
+    (is (string= (some-other-arg instance) "oh hai"))))
