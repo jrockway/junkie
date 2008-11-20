@@ -98,30 +98,31 @@
 
 (defgeneric find-things-providing (area requirements))
 (defmethod find-things-providing ((area action-area) (requirements list))
-  (declare (type (cons requirement) requirements))
   (reduce #'intersection
           (mapcar
            (lambda (requirement) (find-things-providing-1 area requirement))
            requirements)))
 
-(defgeneric build-initargs-for (class area))
-(defmethod build-initargs-for ((class with-provides-requires) (area action-area))
+;; at some point, we may want to rewrite this to use the usual
+;; slot-definition-initfunction
+
+(defgeneric build-initargs-for (class area &optional ignorable-initargs))
+(defmethod build-initargs-for
+    ((class with-provides-requires) (area action-area) &optional ignorable-initargs)
   (iter
     (for (slot-name requirements)
          in-hashtable (slot-requirement-table class))
-    (nconcing
-     (list
-      (car (slot-definition-initargs (find-slot class slot-name)))
-      ;; TODO: we need to recurse here when it's a
-      ;; class instead of an instance
-      (car (find-things-providing area requirements))))))
-
+    (let* ((slot (find-slot class slot-name))
+           (initarg-keyword (car (slot-definition-initargs slot))))
+      (when (not (position initarg-keyword ignorable-initargs :test 'eq))
+        (nconcing
+         (cons initarg-keyword (find-things-providing area requirements)))))))
 
 (defmethod make-instance ((class with-provides-requires) &rest initargs)
   (destructuring-bind (&key ((:from-action-area area)) &allow-other-keys) initargs
     (when area
         (setf initargs
-              (append (build-initargs-for class area)
+              (append (build-initargs-for class area initargs)
                       (iter (for (key value) on initargs by #'cddr)
                             (when (not (eq key :from-action-area))
                               (nconcing (list key value))))))))

@@ -95,8 +95,8 @@
 (test basic-instance-creation
   "create instances from stuff in the action area"
 
-  (let ((a (make-instance 'action-area)) instance)
-    (insert a (cons computer-name "My Computer"))
+  (let ((area (make-instance 'action-area)) instance)
+    (insert area (cons computer-name "My Computer"))
 
     ;; try the normal way of using make-instance
     (finishes (setf instance
@@ -106,10 +106,29 @@
     (is (string= (computer-name instance) "foo"))
     (is (string= (some-other-arg instance) "bar"))
 
+    ;; test the initarg builder
+    (is (endp
+         (build-initargs-for (find-class 'ssh-server) area
+                             '(:very-poorly-named-initarg :some-other-arg)))
+        "if we ignore all initargs, return nothing")
+
+    (is (equal (build-initargs-for (find-class 'ssh-server) area
+                                   '(:some-other-arg))
+               (list :very-poorly-named-initarg "My Computer")))
+
     ;; then try with an action-area
     (finishes (setf instance
                     (make-instance 'ssh-server
-                                   :from-action-area a
+                                   :from-action-area area
                                    :some-other-arg "oh hai")))
     (is (string= (computer-name instance) "My Computer"))
-    (is (string= (some-other-arg instance) "oh hai"))))
+    (is (string= (some-other-arg instance) "oh hai"))
+
+    ;; pass an action-area, but don't actually use it
+    (finishes (setf instance
+                    (make-instance 'ssh-server
+                                   :from-action-area area
+                                   :very-poorly-named-initarg "not my computer"
+                                   :some-other-arg "oh hello")))
+    (is (string= (computer-name instance) "not my computer"))
+    (is (string= (some-other-arg instance) "oh hello"))))
