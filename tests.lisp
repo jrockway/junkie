@@ -90,7 +90,7 @@
   (:metaclass with-provides-requires))
 
 (define-requirement computer-name)
-(add-requirement (find-class 'ssh-server) "computer-name" computer-name)
+(add-requirement 'ssh-server "computer-name" computer-name)
 
 (test basic-instance-creation
   "create instances from stuff in the action area"

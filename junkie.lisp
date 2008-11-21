@@ -30,6 +30,9 @@
 (defgeneric add-requirement (class slot requirement)
   (:documentation "Update the requirements for CLASS to note that SLOT requires REQUIREMENT"))
 
+(defmethod add-requirement ((class symbol) slot requirement)
+  (add-requirement (find-class class) slot requirement))
+
 (defmethod add-requirement
     ((class with-provides-requires) (slot slot-definition)
      (requirement requirement))
