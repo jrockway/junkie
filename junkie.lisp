@@ -95,15 +95,15 @@
   (declare (type requirement provision))
   (pushnew thing (gethash (name provision) (provision-table area))))
 
-(defgeneric find-things-providing-1 (area provision))
-(defmethod find-things-providing-1 ((area action-area) (provision requirement))
+(defgeneric satisfy-requirements-1 (area provision))
+(defmethod satisfy-requirements-1 ((area action-area) (provision requirement))
   (gethash (name provision) (provision-table area)))
 
-(defgeneric find-things-providing (area requirements))
-(defmethod find-things-providing ((area action-area) (requirements list))
+(defgeneric satisfy-requirements (area requirements))
+(defmethod satisfy-requirements ((area action-area) (requirements list))
   (reduce #'intersection
           (mapcar
-           (lambda (requirement) (find-things-providing-1 area requirement))
+           (lambda (requirement) (satisfy-requirements-1 area requirement))
            requirements)))
 
 ;; at some point, we may want to rewrite this to use the usual
@@ -119,7 +119,7 @@
            (initarg-keyword (car (slot-definition-initargs slot))))
       (when (not (position initarg-keyword ignorable-initargs :test 'eq))
         (nconcing
-         (cons initarg-keyword (find-things-providing area requirements)))))))
+         (cons initarg-keyword (satisfy-requirements area requirements)))))))
 
 (defmethod make-instance ((class with-provides-requires) &rest initargs)
   (destructuring-bind (&key ((:from-action-area area)) &allow-other-keys) initargs

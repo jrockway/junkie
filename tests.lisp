@@ -106,6 +106,11 @@
     (is (string= (computer-name instance) "foo"))
     (is (string= (some-other-arg instance) "bar"))
 
+    ;; make sure we have what we require
+    (is (equal (satisfy-requirements area (list computer-name))
+               '("My Computer")))
+
+
     ;; test the initarg builder
     (is (endp
          (build-initargs-for (find-class 'ssh-server) area
